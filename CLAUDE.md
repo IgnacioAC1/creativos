@@ -11,7 +11,20 @@ Plataforma educativa para una escuela de diseño gráfico. Landing page generada
 - Lucide React (iconos)
 - Shadcn/ui + Radix UI (Dialog, Progress y otros ya en uso)
 - React Hook Form (instalado, disponible)
+- **Supabase** (`@supabase/supabase-js`) — Auth + PostgreSQL + RLS
 - pnpm como gestor de paquetes
+
+## Infraestructura
+
+- **Supabase project ID:** `qwcvzpniuqkgaxshenya`
+- **Supabase URL:** `https://qwcvzpniuqkgaxshenya.supabase.co`
+- **Cliente frontend:** `src/lib/supabase.ts` — usa solo la anon key (`VITE_SUPABASE_ANON_KEY`)
+- **Variables de entorno:** `.env.local` (gitignoreado) con `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`
+- **Vercel:** `https://creativos-gamma.vercel.app` — mismas variables configuradas en Vercel settings
+- **GitHub:** `https://github.com/IgnacioAC1/creativos.git` (rama principal: `main`)
+- **Migraciones:** `supabase/migrations/` (001–005)
+
+> **Seguridad:** La `service_role` key NUNCA va en el frontend ni en variables `VITE_*`. Solo la anon key es aceptable en el cliente.
 
 ## Comandos
 
@@ -25,6 +38,8 @@ pnpm run build  # build de producción
 ```
 src/
 ├── main.tsx                          ← entrada; BrowserRouter + AuthProvider
+├── lib/
+│   └── supabase.ts                   ← cliente Supabase (anon key); importar desde aquí siempre
 ├── styles/
 │   ├── index.css                     ← import principal
 │   ├── fonts.css                     ← Google Fonts
@@ -32,9 +47,9 @@ src/
 │   └── theme.css                     ← variables CSS de color y tipografía
 └── app/
     ├── App.tsx                        ← router con todas las rutas + ScrollToTop
-    ├── data.ts                        ← única fuente de datos (cursos, eventos, faculty, métricas mock)
+    ├── data.ts                        ← única fuente de datos estáticos (cursos, eventos, faculty, métricas mock)
     ├── context/
-    │   └── AuthContext.tsx            ← auth mock con localStorage; roles: admin / profesor / alumno
+    │   └── AuthContext.tsx            ← auth real con Supabase; onAuthStateChange + setTimeout(0); roles: admin / profesor / alumno
     ├── components/
     │   ├── ProtectedRoute.tsx         ← redirige por rol; sin auth → /login
     │   ├── ScrollToTop.tsx            ← resetea scroll en cada cambio de ruta
@@ -87,11 +102,14 @@ src/
 /admin/profesores          → AdminTeachers             [rol: admin]
 ```
 
-## Autenticación (mock, sin backend)
+## Autenticación (Supabase Auth real)
 
-- Contexto en `src/app/context/AuthContext.tsx`
-- Sesión persistida en `localStorage` bajo la clave `ac_user`
-- Usuarios de prueba hardcodeados:
+- Contexto en `src/app/context/AuthContext.tsx` — usa `supabase.auth.onAuthStateChange` con `setTimeout(0)` para evitar deadlock
+- `LoginPage` llama a `supabase.auth.signInWithPassword()` directamente y navega al dashboard según el rol
+- `RegisterPage` llama a `supabase.auth.signUp()` — el trigger `handle_new_user` crea el perfil automáticamente con `role='alumno'`
+- Sesión gestionada por Supabase (JWT); no hay nada en `localStorage` del lado de la app
+
+### Cuentas de prueba
 
 | Email | Contraseña | Rol |
 |---|---|---|
@@ -101,7 +119,17 @@ src/
 | lucia@academiacreativa.com | profe123 | profesor |
 | alumno@test.com | alumno123 | alumno |
 
-- El alumno de prueba tiene acceso pagado a: `identidad-visual`, `diseno-web-digital`
+> Los emails de profesores son ficticios — no existen realmente. No se puede hacer reset por email.
+
+### Slugs de profesores (`profiles.profesor_slug`)
+
+| Email | profesor_slug |
+|---|---|
+| marta@academiacreativa.com | `marta-solis` |
+| diego@academiacreativa.com | `diego-ferran` |
+| lucia@academiacreativa.com | `lucia-vega` |
+
+- El alumno de prueba (`alumno@test.com`) tiene matrículas en: `identidad-visual`, `diseno-web-digital`
 - Progreso de lecciones en `localStorage` bajo la clave `ac_progress`
 - Certificados emitidos en `localStorage` bajo la clave `ac_certificates` → `Record<courseSlug, isoDateString>`
 
@@ -168,7 +196,7 @@ El modal tiene dos pantallas:
 
 **Logo en el certificado (fondo blanco):** `AcademiaCreativa` en Krona One negro (`#111`) + `Escuela de Diseño Gráfico` en DM Mono `#9E9B96`. Misma tipografía que el Nav pero invertida a oscuro sobre blanco.
 
-El estado "certificado emitido" se guarda en `ac_certificates` (localStorage). El envío real de email queda pendiente hasta integrar Supabase.
+El estado "certificado emitido" se guarda en `ac_certificates` (localStorage). El envío real de email queda pendiente (Supabase ya está integrado pero la función de email aún no).
 
 ## Responsive
 
