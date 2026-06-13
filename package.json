@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite"
+    "dev": "vite",
+    "scan:secrets": "secretlint \"**/*\""
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
@@ -66,10 +67,12 @@
     "vaul": "1.1.2"
   },
   "devDependencies": {
+    "@secretlint/secretlint-rule-preset-recommend": "^13.0.2",
     "@tailwindcss/vite": "4.1.12",
     "@types/react": "^18.3.29",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "4.7.0",
+    "secretlint": "^13.0.2",
     "tailwindcss": "4.1.12",
     "vite": "6.3.5"
   },
