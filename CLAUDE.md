@@ -22,7 +22,7 @@ Plataforma educativa para una escuela de diseño gráfico. Landing page generada
 - **Variables de entorno:** `.env.local` (gitignoreado) con `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`
 - **Vercel:** `https://creativos-gamma.vercel.app` — mismas variables configuradas en Vercel settings
 - **GitHub:** `https://github.com/IgnacioAC1/creativos.git` (rama principal: `main`)
-- **Migraciones:** `supabase/migrations/` (001–007)
+- **Migraciones:** `supabase/migrations/` (001–008)
 - **Storage:** bucket `avatars` (público, 5 MB, jpg/png/webp) — avatares de profesores; URL pública persiste en `profiles.avatar_url`
 
 > **Seguridad:** La `service_role` key NUNCA va en el frontend ni en variables `VITE_*`. Solo la anon key es aceptable en el cliente.
