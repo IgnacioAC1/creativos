@@ -62,8 +62,8 @@ BEGIN
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'name', 'Usuario'),
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'role', 'alumno'),
-    NEW.raw_user_meta_data->>'profesor_slug'
+    'alumno',
+    NULL
   );
   RETURN NEW;
 END;

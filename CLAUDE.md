@@ -275,3 +275,30 @@ El proyecto tiene dos temas gestionados con `next-themes` (ya instalado y conect
 8. Testimonios — carrusel con autoplay
 9. CTA — fondo crema, llamada a acción; botones "Ver todos los cursos" → `/cursos` y "Próximos eventos" → `/eventos` con `<Link>` de React Router
 10. Footer — redes sociales y scroll-to-top
+
+## Seguridad de la BD (RLS)
+
+Auditoría aplicada en migración `006_security_fixes.sql` (2026-06-13). El esquema real de Supabase **difiere** de las migraciones 001-005 — las migraciones son referencia histórica, las políticas activas son las de la BD.
+
+### Reglas críticas a no revertir
+
+- **`handle_new_user`** hardcodea `role = 'alumno'` — nunca leer `role` de `raw_user_meta_data`; un cliente puede enviar `role: 'admin'` en el signUp
+- **`profiles: editar el propio sin cambiar rol`** tiene `WITH CHECK` que compara `role` con el valor actual — sin él, cualquier alumno puede hacer `UPDATE profiles SET role='admin'`
+- **`profiles: lectura pública` eliminada** — los perfiles no son públicos; cada rol solo ve lo que necesita (propio / admin todo / profesor sus alumnos matriculados en sus cursos)
+
+### Estado actual de políticas por tabla
+
+| Tabla | SELECT | INSERT | UPDATE | DELETE |
+|---|---|---|---|---|
+| `profiles` | propio ∣ admin todo ∣ profesor→sus alumnos | — | propio sin cambiar rol ∣ admin cualquiera | — |
+| `enrollments` | alumno propio ∣ admin ∣ instructor del curso | alumno solo a sí mismo | — | admin |
+| `lesson_progress` | alumno propio ∣ admin ∣ instructor del curso | alumno solo a sí mismo | alumno propio | — |
+| `certificates` | alumno propio ∣ profesor todos ∣ admin | alumno solo a sí mismo + rol alumno | — | — |
+| `courses` | publicados ∣ propio instructor ∣ admin ∣ matriculado | instructor/admin | instructor/admin | instructor/admin |
+| `events` | público | admin | admin | admin |
+
+### Integraciones externas pendientes (Stripe / email)
+
+- El webhook de Stripe debe usar la **service_role key** (nunca anon) para insertar en `enrollments`
+- La función de email (Supabase Edge Function o Resend) también requiere service_role
+- La anon key del cliente **nunca** debe poder insertar matrículas directamente
