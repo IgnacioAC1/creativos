@@ -19,6 +19,7 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<string | null>;
   logout: () => Promise<void>;
   isEnrolled: (courseSlug: string) => boolean;
+  updateName: (name: string) => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -96,8 +97,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return user?.enrolledCourses.includes(courseSlug) ?? false;
   }
 
+  async function updateName(name: string): Promise<string | null> {
+    if (!user) return "No hay sesión activa";
+    const { error } = await supabase
+      .from("profiles")
+      .update({ name })
+      .eq("id", user.id);
+    if (error) return error.message;
+    setUser((prev) => (prev ? { ...prev, name } : prev));
+    return null;
+  }
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, logout, isEnrolled }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, logout, isEnrolled, updateName }}>
       {children}
     </AuthContext.Provider>
   );

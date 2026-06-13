@@ -22,7 +22,8 @@ Plataforma educativa para una escuela de diseño gráfico. Landing page generada
 - **Variables de entorno:** `.env.local` (gitignoreado) con `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`
 - **Vercel:** `https://creativos-gamma.vercel.app` — mismas variables configuradas en Vercel settings
 - **GitHub:** `https://github.com/IgnacioAC1/creativos.git` (rama principal: `main`)
-- **Migraciones:** `supabase/migrations/` (001–005)
+- **Migraciones:** `supabase/migrations/` (001–007)
+- **Storage:** bucket `avatars` (público, 5 MB, jpg/png/webp) — avatares de profesores; URL pública persiste en `profiles.avatar_url`
 
 > **Seguridad:** La `service_role` key NUNCA va en el frontend ni en variables `VITE_*`. Solo la anon key es aceptable en el cliente.
 
@@ -47,16 +48,18 @@ src/
 │   └── theme.css                     ← variables CSS de color y tipografía
 └── app/
     ├── App.tsx                        ← router con todas las rutas + ScrollToTop
-    ├── data.ts                        ← única fuente de datos estáticos (cursos, eventos, faculty, métricas mock)
+    ├── data.ts                        ← datos estáticos (cursos, eventos, métricas mock); faculty[] solo como referencia — Claustro y AdminTeachers leen de Supabase
     ├── context/
-    │   └── AuthContext.tsx            ← auth real con Supabase; onAuthStateChange + setTimeout(0); roles: admin / profesor / alumno
+    │   └── AuthContext.tsx            ← auth real con Supabase; onAuthStateChange + setTimeout(0); roles: admin / profesor / alumno; expone updateName() para actualizar profiles.name
     ├── components/
     │   ├── ProtectedRoute.tsx         ← redirige por rol; sin auth → /login
     │   ├── ScrollToTop.tsx            ← resetea scroll en cada cambio de ruta
     │   ├── EventSignupModal.tsx       ← Dialog reutilizable: nombre_evento (readonly), nombre, email
     │   ├── CourseCompletionModal.tsx  ← Dialog de felicitación + certificado al completar un curso
+    │   ├── EditProfileModal.tsx       ← Dialog solo para rol alumno: editar nombre + cambiar contraseña
     │   ├── figma/                     ← secciones de la landing + Nav compartido
-    │   │   ├── Nav.tsx                ← header fijo; Links de router para Cursos/Eventos; menú usuario
+    │   │   ├── Nav.tsx                ← header fijo; Links de router para Cursos/Eventos; menú usuario; dropdown alumno muestra nombre completo + lápiz → EditProfileModal
+    │   │   ├── Faculty.tsx            ← sección Claustro; lee profiles WHERE role='profesor' de Supabase; conteo de cursos calculado desde data.ts por profesorSlug
     │   │   ├── EventCard.tsx          ← prop onReservar para abrir EventSignupModal
     │   │   ├── Events.tsx             ← sección landing con modal integrado
     │   │   └── …resto de secciones
@@ -76,7 +79,7 @@ src/
         ├── AdminCourses.tsx           ← /admin/cursos (publicar/despublicar cursos)
         ├── AdminEvents.tsx            ← /admin/eventos (eliminar con AlertDialog confirmación)
         ├── AdminEventEditor.tsx       ← /admin/eventos/nuevo  |  /admin/eventos/:id/editar
-        └── AdminTeachers.tsx          ← /admin/profesores
+        └── AdminTeachers.tsx          ← /admin/profesores — lee profiles de Supabase (role='profesor'|'alumno' con profesor_slug); edita nombre/email/especialidad/bio/avatar; toggle acceso (role); "Nuevo profesor": admin introduce email de usuario ya registrado → asigna role='profesor' + genera profesor_slug
 ```
 
 ## Rutas

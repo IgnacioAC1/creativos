@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Menu, X, ChevronDown, User, LogOut, LayoutDashboard, Sun, Moon } from "lucide-react";
+import { Menu, X, ChevronDown, User, LogOut, LayoutDashboard, Sun, Moon, Pencil } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router";
 import { useTheme } from "next-themes";
 import { useAuth } from "../../context/AuthContext";
+import EditProfileModal from "../EditProfileModal";
 
 const ROLE_HOME = {
   admin: "/admin",
@@ -15,6 +16,7 @@ export default function Nav() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
@@ -127,8 +129,30 @@ export default function Nav() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute right-0 top-full mt-2 w-48 bg-background border border-border z-50 flex flex-col"
+                      className="absolute right-0 top-full mt-2 w-56 bg-background border border-border z-50 flex flex-col"
                     >
+                      {user!.role === "alumno" && (
+                        <button
+                          onClick={() => { setProfileModalOpen(true); setUserMenuOpen(false); }}
+                          className="flex items-center justify-between gap-3 px-4 py-3.5 border-b border-border hover:bg-secondary/50 transition-colors group w-full text-left"
+                        >
+                          <div className="flex flex-col items-start gap-0.5 min-w-0">
+                            <span
+                              className="text-[10px] uppercase tracking-widest text-muted-foreground"
+                              style={{ fontFamily: "'DM Mono', monospace" }}
+                            >
+                              Cuenta
+                            </span>
+                            <span
+                              className="text-sm text-foreground truncate max-w-[160px]"
+                              style={{ fontFamily: "'Outfit', sans-serif" }}
+                            >
+                              {user!.name}
+                            </span>
+                          </div>
+                          <Pencil size={11} className="text-muted-foreground group-hover:text-accent transition-colors shrink-0" />
+                        </button>
+                      )}
                       <Link
                         to={ROLE_HOME[user!.role]}
                         onClick={() => setUserMenuOpen(false)}
@@ -140,7 +164,7 @@ export default function Nav() {
                       </Link>
                       <button
                         onClick={handleLogout}
-                        className="flex items-center gap-3 px-4 py-3 text-xs text-muted-foreground hover:text-accent hover:bg-secondary/50 transition-colors uppercase tracking-widest"
+                        className="flex items-center gap-3 px-4 py-3 text-xs text-muted-foreground hover:text-accent hover:bg-secondary/50 transition-colors uppercase tracking-widest w-full text-left"
                         style={{ fontFamily: "'DM Mono', monospace" }}
                       >
                         <LogOut size={12} />
@@ -252,10 +276,22 @@ export default function Nav() {
                     Mi espacio
                   </Link>
                 </motion.div>
+                {user!.role === "alumno" && (
+                  <motion.button
+                    initial={{ opacity: 0, x: -24 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 5 * 0.07 }}
+                    style={{ fontFamily: "'Krona One', sans-serif" }}
+                    className="text-left text-5xl font-light py-5 border-b border-border text-foreground hover:text-accent transition-colors"
+                    onClick={() => { setMenuOpen(false); setProfileModalOpen(true); }}
+                  >
+                    Mi perfil
+                  </motion.button>
+                )}
                 <motion.button
                   initial={{ opacity: 0, x: -24 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 5 * 0.07 }}
+                  transition={{ delay: 6 * 0.07 }}
                   style={{ fontFamily: "'Krona One', sans-serif" }}
                   className="text-left text-5xl font-light py-5 border-b border-border text-muted-foreground hover:text-accent transition-colors"
                   onClick={() => { handleLogout(); setMenuOpen(false); }}
@@ -282,6 +318,11 @@ export default function Nav() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <EditProfileModal
+        open={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+      />
     </>
   );
 }
