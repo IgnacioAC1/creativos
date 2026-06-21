@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Link } from "react-router";
-import { ArrowUpRight, TrendingUp } from "lucide-react";
-import { mockMetrics } from "../data";
+import { ArrowUpRight, TrendingUp, Send, RefreshCw } from "lucide-react";
+import { mockMetrics, courses } from "../data";
 import Nav from "../components/figma/Nav";
+import { supabase } from "../../lib/supabase";
 
 const NAV_LINKS = [
   { label: "Métricas", to: "/admin" },
@@ -73,6 +75,155 @@ function MetricCard({
         </div>
       )}
     </div>
+  );
+}
+
+type InactiveStudent = {
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  course_slug: string;
+  enrolled_at: string;
+  last_activity: string | null;
+};
+
+function InactiveStudentsSection() {
+  const [students, setStudents] = useState<InactiveStudent[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sentCount, setSentCount] = useState<number | null>(null);
+  const [error, setError] = useState("");
+
+  const courseTitle = (slug: string) =>
+    courses.find((c) => c.slug === slug)?.title ?? slug;
+
+  async function load() {
+    setLoading(true);
+    setError("");
+    setSentCount(null);
+    const { data, error: fnError } = await supabase.functions.invoke("inactive-students", {
+      body: { days: 14 },
+    });
+    setLoading(false);
+    if (fnError) { setError(fnError.message); return; }
+    setStudents(data.students ?? []);
+  }
+
+  async function sendReminders() {
+    if (!students?.length) return;
+    setSending(true);
+    setError("");
+    const { data, error: fnError } = await supabase.functions.invoke("inactive-students", {
+      body: { days: 14, send: true },
+    });
+    setSending(false);
+    if (fnError) { setError(fnError.message); return; }
+    setSentCount(data.sent ?? 0);
+  }
+
+  return (
+    <section className="mb-14">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <h2
+          style={{ fontFamily: "'Krona One', sans-serif" }}
+          className="text-lg font-light text-foreground"
+        >
+          Alumnos inactivos (+14 días)
+        </h2>
+        <div className="flex items-center gap-3">
+          {students !== null && students.length > 0 && (
+            <button
+              onClick={sendReminders}
+              disabled={sending}
+              className="inline-flex items-center gap-2 text-xs uppercase tracking-widest border border-accent text-accent px-4 py-2.5 hover:bg-accent hover:text-accent-foreground transition-all disabled:opacity-50"
+              style={{ fontFamily: "'DM Mono', monospace" }}
+            >
+              <Send size={11} />
+              {sending ? "Enviando…" : `Enviar recordatorios (${students.length})`}
+            </button>
+          )}
+          <button
+            onClick={load}
+            disabled={loading}
+            className="inline-flex items-center gap-2 text-xs uppercase tracking-widest border border-border text-muted-foreground px-4 py-2.5 hover:border-foreground hover:text-foreground transition-all disabled:opacity-50"
+            style={{ fontFamily: "'DM Mono', monospace" }}
+          >
+            <RefreshCw size={11} className={loading ? "animate-spin" : ""} />
+            {loading ? "Cargando…" : students === null ? "Comprobar" : "Actualizar"}
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <p className="text-xs text-accent mb-4" style={{ fontFamily: "'DM Mono', monospace" }}>
+          Error: {error}
+        </p>
+      )}
+
+      {sentCount !== null && (
+        <p className="text-xs text-muted-foreground mb-4" style={{ fontFamily: "'DM Mono', monospace" }}>
+          {sentCount} recordatorio{sentCount !== 1 ? "s" : ""} enviado{sentCount !== 1 ? "s" : ""} correctamente.
+        </p>
+      )}
+
+      {students === null && !loading && (
+        <div className="border border-border border-dashed px-6 py-10 text-center">
+          <p className="text-sm text-muted-foreground">
+            Pulsa "Comprobar" para detectar alumnos sin actividad en los últimos 14 días.
+          </p>
+        </div>
+      )}
+
+      {students !== null && students.length === 0 && (
+        <div className="border border-border border-dashed px-6 py-10 text-center">
+          <p className="text-sm text-muted-foreground">No hay alumnos inactivos en este momento.</p>
+        </div>
+      )}
+
+      {students !== null && students.length > 0 && (
+        <div className="border border-border">
+          <div className="hidden md:grid grid-cols-[1fr_1fr_1fr_auto] gap-4 px-5 py-3 border-b border-border">
+            {["Alumno", "Curso", "Última actividad", "Inscrito"].map((h) => (
+              <span
+                key={h}
+                className="text-xs uppercase tracking-widest text-muted-foreground"
+                style={{ fontFamily: "'DM Mono', monospace" }}
+              >
+                {h}
+              </span>
+            ))}
+          </div>
+          {students.map((s, i) => (
+            <div
+              key={`${s.user_id}-${s.course_slug}`}
+              className={`grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-2 md:gap-4 px-5 py-4 hover:bg-black/5 dark:hover:bg-secondary/50 transition-colors ${
+                i < students.length - 1 ? "border-b border-border" : ""
+              }`}
+            >
+              <div>
+                <p className="text-sm text-foreground">{s.user_name}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{s.user_email}</p>
+              </div>
+              <p className="text-sm text-foreground self-center">{courseTitle(s.course_slug)}</p>
+              <p
+                className="text-sm self-center"
+                style={{ fontFamily: "'DM Mono', monospace", color: "#9E9B96" }}
+              >
+                {s.last_activity
+                  ? new Date(s.last_activity).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })
+                  : "Sin actividad"}
+              </p>
+              <p
+                className="text-xs self-center"
+                style={{ fontFamily: "'DM Mono', monospace", color: "#9E9B96" }}
+              >
+                {new Date(s.enrolled_at).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -211,6 +362,9 @@ export default function AdminDashboard() {
               })}
             </div>
           </section>
+
+          {/* Alumnos inactivos */}
+          <InactiveStudentsSection />
 
           {/* Detalle por curso */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
