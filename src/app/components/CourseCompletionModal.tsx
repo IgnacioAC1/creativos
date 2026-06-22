@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import confetti from "canvas-confetti";
 import { X, Award, Download, Mail } from "lucide-react";
 import { Dialog, DialogContent } from "./ui/dialog";
+import { supabase } from "../../lib/supabase";
 
 interface Props {
   open: boolean;
@@ -126,6 +127,15 @@ export default function CourseCompletionModal({
       const now = new Date().toISOString();
       localStorage.setItem(CERT_KEY, JSON.stringify({ ...certs, [courseSlug]: now }));
       setCertDate(now);
+      supabase.functions.invoke("send-certificate", {
+        body: {
+          student_name: studentName,
+          student_email: studentEmail,
+          course_title: courseName,
+          course_slug: courseSlug,
+          issued_at: now,
+        },
+      });
     } else {
       setCertDate(certs[courseSlug]);
     }

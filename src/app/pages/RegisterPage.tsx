@@ -26,6 +26,7 @@ export default function RegisterPage() {
       setError(signUpError.message);
       return;
     }
+    supabase.functions.invoke("send-welcome-email", { body: { name, email } });
     setSubmitted(true);
     setTimeout(() => navigate("/login"), 2000);
   }
