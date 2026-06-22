@@ -35,11 +35,11 @@ async function buildAuthUser(userId: string, email: string): Promise<AuthUser | 
 
   const { data: enrollments } = await supabase
     .from("enrollments")
-    .select("courses(slug)")
-    .eq("student_id", userId);
+    .select("course_slug")
+    .eq("user_id", userId);
 
   const enrolledCourses = (enrollments ?? [])
-    .map((e: { courses: { slug: string } | null }) => e.courses?.slug)
+    .map((e: { course_slug: string }) => e.course_slug)
     .filter(Boolean) as string[];
 
   return {
