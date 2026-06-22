@@ -2,13 +2,14 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowUpRight, ChevronRight, Video } from "lucide-react";
 import { useNavigate } from "react-router";
-import { courses } from "../../data";
 import { useAuth } from "../../context/AuthContext";
+import { useCourses } from "../../../lib/hooks/useCourses";
 
 export default function Courses() {
   const [openCourse, setOpenCourse] = useState<string | null>(null);
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const { courses, loading } = useCourses();
 
   return (
     <section id="cursos" className="py-24 md:py-32">
@@ -33,8 +34,16 @@ export default function Courses() {
           </p>
         </div>
 
+        {loading && (
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className={`${i % 3 === 0 ? "md:col-span-7" : "md:col-span-5"} bg-secondary animate-pulse`} style={{ height: 420 }} />
+            ))}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
-          {courses.map((c, idx) => {
+          {!loading && courses.map((c, idx) => {
             const isOpen = openCourse === c.code;
             const isLarge = idx % 3 === 0;
             return (

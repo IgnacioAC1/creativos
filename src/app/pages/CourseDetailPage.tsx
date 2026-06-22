@@ -2,11 +2,13 @@ import { useParams, useNavigate, Link } from "react-router";
 import { useState, useEffect } from "react";
 import { Lock, Play, CheckCircle, ChevronDown, ChevronUp, ArrowLeft, X } from "lucide-react";
 import type { Lesson } from "../data";
-import { courses, faculty } from "../data";
+import { faculty } from "../data";
 import Nav from "../components/figma/Nav";
 import Footer from "../components/figma/Footer";
 import { useAuth } from "../context/AuthContext";
 import CourseCompletionModal from "../components/CourseCompletionModal";
+import { useCourse } from "../../lib/hooks/useCourses";
+import { supabase } from "../../lib/supabase";
 
 const PROGRESS_KEY = "ac_progress";
 
@@ -26,18 +28,54 @@ export default function CourseDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const { isEnrolled, user } = useAuth();
   const navigate = useNavigate();
-  const course = courses.find((c) => c.slug === slug);
+  const { course, loading } = useCourse(slug);
   const professor = course ? faculty.find((f) => f.slug === course.profesorSlug) : null;
   const enrolled = course ? isEnrolled(course.slug) : false;
 
-  const [openModules, setOpenModules] = useState<Set<string>>(new Set([course?.modules[0]?.id ?? ""]));
+  const [openModules, setOpenModules] = useState<Set<string>>(new Set());
   const [progress, setProgress] = useState<Record<string, string[]>>(loadProgress);
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [checkingOut, setCheckingOut] = useState(false);
+
+  async function handleCheckout() {
+    if (!user || !course) return;
+    setCheckingOut(true);
+    try {
+      const priceCents = parseInt(course.price.replace(/[€.,\s]/g, "")) * 100;
+      const { data, error } = await supabase.functions.invoke("create-checkout-session", {
+        body: {
+          course_slug: course.slug,
+          course_title: course.title,
+          price_in_cents: priceCents,
+          user_name: user.name ?? "",
+        },
+      });
+      if (error || !data?.url) throw new Error(error?.message ?? "Error al crear sesión de pago");
+      window.location.href = data.url;
+    } catch (err) {
+      console.error(err);
+      setCheckingOut(false);
+    }
+  }
+
+  useEffect(() => {
+    if (course?.modules[0]?.id) {
+      setOpenModules(new Set([course.modules[0].id]));
+    }
+  }, [course?.modules[0]?.id]);
 
   useEffect(() => {
     saveProgress(progress);
   }, [progress]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <p className="text-muted-foreground" style={{ fontFamily: "'DM Mono', monospace" }}>Cargando curso…</p>
+      </div>
+    );
+  }
 
   if (!course) {
     return (
@@ -198,9 +236,18 @@ export default function CourseDetailPage() {
                       Acceso activo
                     </p>
                   </div>
+                ) : user ? (
+                  <button
+                    onClick={handleCheckout}
+                    disabled={checkingOut}
+                    className="block w-full py-3.5 bg-accent text-accent-foreground text-xs uppercase tracking-widest hover:bg-accent/90 transition-colors text-center disabled:opacity-60"
+                    style={{ fontFamily: "'DM Mono', monospace" }}
+                  >
+                    {checkingOut ? "Redirigiendo…" : `Acceder · ${course.price}`}
+                  </button>
                 ) : (
                   <Link
-                    to={user ? "#" : "/registro"}
+                    to="/registro"
                     className="block w-full py-3.5 bg-accent text-accent-foreground text-xs uppercase tracking-widest hover:bg-accent/90 transition-colors text-center"
                     style={{ fontFamily: "'DM Mono', monospace" }}
                   >
@@ -285,7 +332,7 @@ export default function CourseDetailPage() {
               </h2>
 
               <div className="flex flex-col gap-2">
-                {course.modules.map((mod) => {
+                {course.modules.map((mod, modIdx) => {
                   const isOpen = openModules.has(mod.id);
                   const modCompleted = mod.lessons.filter((l) => completedIds.includes(l.id)).length;
 
@@ -300,7 +347,7 @@ export default function CourseDetailPage() {
                             className="text-xs text-muted-foreground uppercase tracking-widest"
                             style={{ fontFamily: "'DM Mono', monospace" }}
                           >
-                            {mod.id.split("-m")[1].padStart(2, "0")}
+                            {String(modIdx + 1).padStart(2, "0")}
                           </span>
                           <span
                             style={{ fontFamily: "'Krona One', sans-serif" }}
