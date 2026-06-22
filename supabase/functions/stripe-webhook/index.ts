@@ -36,9 +36,23 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    const { data: courseRow, error: courseError } = await supabase
+      .from("courses")
+      .select("id")
+      .eq("slug", course_slug)
+      .single();
+
+    if (courseError || !courseRow) {
+      console.error("Curso no encontrado:", course_slug, courseError);
+      return new Response(
+        JSON.stringify({ error: `Curso no encontrado: ${course_slug}` }),
+        { headers: { "Content-Type": "application/json" }, status: 500 },
+      );
+    }
+
     const { error: enrollError } = await supabase
       .from("enrollments")
-      .insert({ user_id, course_slug, enrolled_at: new Date().toISOString() });
+      .insert({ student_id: user_id, course_id: courseRow.id, enrolled_at: new Date().toISOString() });
 
     if (enrollError && enrollError.code !== "23505") {
       console.error("Error insertando matrícula:", enrollError);
