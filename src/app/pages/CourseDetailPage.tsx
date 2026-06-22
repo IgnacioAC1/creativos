@@ -236,25 +236,23 @@ export default function CourseDetailPage() {
                       Acceso activo
                     </p>
                   </div>
+                ) : user ? (
+                  <button
+                    onClick={handleCheckout}
+                    disabled={checkingOut}
+                    className="block w-full py-3.5 bg-accent text-accent-foreground text-xs uppercase tracking-widest hover:bg-accent/90 transition-colors text-center disabled:opacity-60"
+                    style={{ fontFamily: "'DM Mono', monospace" }}
+                  >
+                    {checkingOut ? "Redirigiendo…" : `Acceder · ${course.price}`}
+                  </button>
                 ) : (
-                  {user ? (
-                    <button
-                      onClick={handleCheckout}
-                      disabled={checkingOut}
-                      className="block w-full py-3.5 bg-accent text-accent-foreground text-xs uppercase tracking-widest hover:bg-accent/90 transition-colors text-center disabled:opacity-60"
-                      style={{ fontFamily: "'DM Mono', monospace" }}
-                    >
-                      {checkingOut ? "Redirigiendo…" : `Acceder · ${course.price}`}
-                    </button>
-                  ) : (
-                    <Link
-                      to="/registro"
-                      className="block w-full py-3.5 bg-accent text-accent-foreground text-xs uppercase tracking-widest hover:bg-accent/90 transition-colors text-center"
-                      style={{ fontFamily: "'DM Mono', monospace" }}
-                    >
-                      Acceder al curso
-                    </Link>
-                  )}
+                  <Link
+                    to="/registro"
+                    className="block w-full py-3.5 bg-accent text-accent-foreground text-xs uppercase tracking-widest hover:bg-accent/90 transition-colors text-center"
+                    style={{ fontFamily: "'DM Mono', monospace" }}
+                  >
+                    Acceder al curso
+                  </Link>
                 )}
               </div>
             </div>
