@@ -1,10 +1,12 @@
 import { Link } from "react-router";
 import { ArrowUpRight } from "lucide-react";
-import { courses } from "../data";
 import Nav from "../components/figma/Nav";
 import Footer from "../components/figma/Footer";
+import { useCourses } from "../../lib/hooks/useCourses";
 
 export default function CoursesPage() {
+  const { courses, loading } = useCourses();
+
   return (
     <div
       className="bg-background text-foreground min-h-screen overflow-x-hidden"
@@ -31,8 +33,16 @@ export default function CoursesPage() {
             </h1>
           </div>
 
+          {loading && (
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className={`${i % 2 === 0 ? "md:col-span-7" : "md:col-span-5"} bg-card border border-border animate-pulse`} style={{ height: 480 }} />
+              ))}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-            {courses.filter((c) => c.published).map((course, i) => {
+            {!loading && courses.filter((c) => c.published).map((course, i) => {
               const isWide = i % 2 === 0;
               return (
                 <Link
