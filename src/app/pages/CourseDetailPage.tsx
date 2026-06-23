@@ -455,13 +455,24 @@ export default function CourseDetailPage() {
                     Con acceso al curso desbloqueas todas las lecciones, descripciones detalladas,
                     vídeos y el seguimiento de tu progreso.
                   </p>
-                  <Link
-                    to={user ? "#" : "/registro"}
-                    className="block w-full py-3.5 bg-accent text-accent-foreground text-xs uppercase tracking-widest hover:bg-accent/90 transition-colors text-center"
-                    style={{ fontFamily: "'DM Mono', monospace" }}
-                  >
-                    {course.price} — Acceder ahora
-                  </Link>
+                  {user ? (
+                    <button
+                      onClick={handleCheckout}
+                      disabled={checkingOut}
+                      className="block w-full py-3.5 bg-accent text-accent-foreground text-xs uppercase tracking-widest hover:bg-accent/90 transition-colors text-center disabled:opacity-60"
+                      style={{ fontFamily: "'DM Mono', monospace" }}
+                    >
+                      {checkingOut ? "Redirigiendo…" : `${course.price} — Acceder ahora`}
+                    </button>
+                  ) : (
+                    <Link
+                      to="/registro"
+                      className="block w-full py-3.5 bg-accent text-accent-foreground text-xs uppercase tracking-widest hover:bg-accent/90 transition-colors text-center"
+                      style={{ fontFamily: "'DM Mono', monospace" }}
+                    >
+                      {course.price} — Acceder ahora
+                    </Link>
+                  )}
                 </div>
               )}
             </div>
