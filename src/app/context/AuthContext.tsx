@@ -90,6 +90,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function logout(): Promise<void> {
+    localStorage.removeItem("ac_progress");
+    localStorage.removeItem("ac_certificates");
     await supabase.auth.signOut();
   }
 
