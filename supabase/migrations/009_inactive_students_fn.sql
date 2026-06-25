@@ -23,18 +23,24 @@ AS $$
     p.id                    AS user_id,
     p.name                  AS user_name,
     u.email                 AS user_email,
-    e.course_slug,
+    c.slug                  AS course_slug,
     e.enrolled_at,
     MAX(lp.completed_at)    AS last_activity
   FROM public.enrollments e
-  JOIN public.profiles   p  ON p.id = e.user_id
+  JOIN public.profiles   p  ON p.id = e.student_id
   JOIN auth.users        u  ON u.id = p.id
+  JOIN public.courses    c  ON c.id = e.course_id
   LEFT JOIN public.lesson_progress lp
-         ON lp.user_id = e.user_id AND lp.course_slug = e.course_slug
+         ON lp.student_id = e.student_id
+        AND lp.lesson_id IN (
+          SELECT l.id FROM public.lessons l
+          JOIN public.modules m ON m.id = l.module_id
+          WHERE m.course_id = e.course_id
+        )
   WHERE
     p.role = 'alumno'
     AND e.enrolled_at < NOW() - (days_threshold || ' days')::INTERVAL
-  GROUP BY p.id, p.name, u.email, e.course_slug, e.enrolled_at
+  GROUP BY p.id, p.name, u.email, c.slug, e.enrolled_at
   HAVING
     MAX(lp.completed_at) IS NULL
     OR MAX(lp.completed_at) < NOW() - (days_threshold || ' days')::INTERVAL
